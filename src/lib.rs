@@ -10,6 +10,7 @@ pub mod ical;
 
 // Re-export common types
 pub use storage::{Database, Event};
+pub use dbus::CalendarService;
 
 /// Result type used throughout the library
 pub type Result<T> = anyhow::Result<T>;
