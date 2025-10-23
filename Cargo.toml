@@ -1,0 +1,53 @@
+[package]
+name = "davd"
+version = "0.1.0"
+edition = "2021"
+authors = ["davd contributors"]
+description = "A CalDAV/CardDAV sync daemon for Linux"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/EdgarPost/davd"
+
+[dependencies]
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+
+# HTTP client
+reqwest = { version = "0.12", features = ["rustls-tls"] }
+
+# XML parsing
+quick-xml = "0.36"
+
+# Database
+rusqlite = { version = "0.32", features = ["bundled"] }
+
+# D-Bus
+zbus = { version = "4", features = ["tokio"] }
+
+# Credentials (Phase 2)
+# secret-service = "3"
+
+# Configuration
+serde = { version = "1", features = ["derive"] }
+toml = "0.8"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# CLI
+clap = { version = "4", features = ["derive"] }
+
+# Date/time
+chrono = { version = "0.4", features = ["serde"] }
+
+# Error handling
+anyhow = "1"
+thiserror = "1"
+
+# URL handling
+url = "2"
+
+[dev-dependencies]
+mockall = "0.13"
+tempfile = "3"
+tokio-test = "0.4"
