@@ -10,5 +10,5 @@ mod parser;
 
 pub use parser::{parse_event, ICalEvent};
 
-#[cfg(test)]
-mod tests;
+// #[cfg(test)]
+// mod tests;

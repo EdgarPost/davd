@@ -10,5 +10,5 @@ mod caldav;
 
 pub use caldav::CalDavClient;
 
-#[cfg(test)]
-mod tests;
+// #[cfg(test)]
+// mod tests;

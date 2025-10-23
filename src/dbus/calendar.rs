@@ -2,8 +2,7 @@
 //!
 //! Provides the org.davd.Calendar interface for applications to query events.
 
-use zbus::{dbus_interface, ConnectionBuilder};
-use chrono::{DateTime, Utc};
+use zbus::interface;
 use std::sync::Arc;
 use crate::{Database, Result};
 
@@ -14,7 +13,7 @@ pub struct CalendarService {
 }
 
 /// D-Bus representation of a calendar event
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, zbus::zvariant::Type)]
 pub struct DbusEvent {
     /// Event ID
     pub id: i64,
@@ -55,7 +54,7 @@ impl CalendarService {
 }
 
 /// D-Bus interface implementation
-#[dbus_interface(name = "org.davd.Calendar")]
+#[interface(name = "org.davd.Calendar")]
 impl CalendarService {
     /// List events within a time range
     ///
@@ -65,7 +64,7 @@ impl CalendarService {
     ///
     /// # Returns
     /// A list of events in the time range
-    async fn list_events(&self, start: String, end: String) -> Vec<DbusEvent> {
+    async fn list_events(&self, _start: String, _end: String) -> Vec<DbusEvent> {
         // TODO: Parse start and end times
         // TODO: Query database for events in range
         // TODO: Convert to DbusEvent format
@@ -79,11 +78,11 @@ impl CalendarService {
     /// * `id` - Event ID
     ///
     /// # Returns
-    /// The event details, or error if not found
-    async fn get_event(&self, id: i64) -> Option<DbusEvent> {
+    /// The event details (empty values if not found for now)
+    async fn get_event(&self, _id: i64) -> DbusEvent {
         // TODO: Query database for event by ID
         // TODO: Convert to DbusEvent format
-        // TODO: Return Some(event) or None if not found
+        // TODO: Return event or handle not found case properly
         todo!("Implement get_event")
     }
 
@@ -93,8 +92,8 @@ impl CalendarService {
     /// * `id` - Event ID
     ///
     /// # Returns
-    /// The raw iCalendar data as a string
-    async fn get_event_ical(&self, id: i64) -> Option<String> {
+    /// The raw iCalendar data as a string (empty if not found for now)
+    async fn get_event_ical(&self, _id: i64) -> String {
         // TODO: Query database for event by ID
         // TODO: Return the ical_data field
         todo!("Implement get_event_ical")

@@ -47,7 +47,7 @@ impl CalDavClient {
     /// * `server_url` - The CalDAV server URL
     /// * `username` - Username for authentication
     /// * `password` - Password for authentication
-    pub fn new(server_url: String, username: String, password: String) -> Result<Self> {
+    pub fn new(_server_url: String, _username: String, _password: String) -> Result<Self> {
         // TODO: Parse and validate server URL
         // TODO: Create HTTP client
         // TODO: Configure basic auth
@@ -71,7 +71,7 @@ impl CalDavClient {
     ///
     /// # Returns
     /// A list of available calendars
-    pub async fn list_calendars(&self, calendar_home_url: &str) -> Result<Vec<CalendarInfo>> {
+    pub async fn list_calendars(&self, _calendar_home_url: &str) -> Result<Vec<CalendarInfo>> {
         // TODO: Perform PROPFIND with depth=1
         // TODO: Parse response to extract calendar collections
         // TODO: Filter for calendar resources (resourcetype includes calendar)
@@ -85,7 +85,7 @@ impl CalDavClient {
     ///
     /// # Returns
     /// A list of events (with UIDs, URLs, and ETags)
-    pub async fn list_events(&self, calendar_url: &str) -> Result<Vec<CalDavEvent>> {
+    pub async fn list_events(&self, _calendar_url: &str) -> Result<Vec<CalDavEvent>> {
         // TODO: Perform PROPFIND or REPORT calendar-query
         // TODO: Parse response to extract event URLs, UIDs, and ETags
         todo!("Implement list_events")
@@ -98,7 +98,7 @@ impl CalDavClient {
     ///
     /// # Returns
     /// The raw iCalendar data (VEVENT component)
-    pub async fn get_event(&self, event_url: &str) -> Result<String> {
+    pub async fn get_event(&self, _event_url: &str) -> Result<String> {
         // TODO: Perform GET request
         // TODO: Return response body as string
         todo!("Implement get_event")
@@ -111,7 +111,7 @@ impl CalDavClient {
     ///
     /// # Returns
     /// The current sync token, if supported
-    pub async fn get_sync_token(&self, calendar_url: &str) -> Result<Option<String>> {
+    pub async fn get_sync_token(&self, _calendar_url: &str) -> Result<Option<String>> {
         // TODO: Perform PROPFIND to get sync-token property
         // TODO: Return None if sync-token is not supported
         todo!("Implement get_sync_token")
@@ -127,8 +127,8 @@ impl CalDavClient {
     /// A tuple of (new_events, deleted_event_urls, new_sync_token)
     pub async fn sync_collection(
         &self,
-        calendar_url: &str,
-        sync_token: &str,
+        _calendar_url: &str,
+        _sync_token: &str,
     ) -> Result<(Vec<CalDavEvent>, Vec<String>, String)> {
         // TODO: Perform sync-collection REPORT
         // TODO: Parse response to extract added/modified and deleted events

@@ -3,6 +3,7 @@
 //! Provides the main Database type for storing and querying calendar data.
 
 use std::path::Path;
+use std::sync::Mutex;
 use rusqlite::{Connection, OptionalExtension, params};
 use chrono::{DateTime, Utc};
 use crate::Result;
@@ -11,7 +12,7 @@ use super::migrations;
 
 /// SQLite database handle for calendar storage
 pub struct Database {
-    conn: Connection,
+    conn: Mutex<Connection>,
 }
 
 impl Database {
@@ -31,7 +32,7 @@ impl Database {
         // Run migrations
         migrations::run_migrations(&conn)?;
 
-        Ok(Self { conn })
+        Ok(Self { conn: Mutex::new(conn) })
     }
 
     /// Create an in-memory database (for testing)
@@ -44,14 +45,15 @@ impl Database {
         // Run migrations
         migrations::run_migrations(&conn)?;
 
-        Ok(Self { conn })
+        Ok(Self { conn: Mutex::new(conn) })
     }
 
     // Account operations
 
     /// Insert a new account
     pub fn insert_account(&self, account: &Account) -> Result<i64> {
-        self.conn.execute(
+        let conn = self.conn.lock().unwrap();
+        conn.execute(
             "INSERT INTO accounts (name, server_url, username, password, created_at, last_sync)
              VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
             params![
@@ -64,12 +66,13 @@ impl Database {
             ],
         )?;
 
-        Ok(self.conn.last_insert_rowid())
+        Ok(conn.last_insert_rowid())
     }
 
     /// Get an account by ID
     pub fn get_account(&self, id: i64) -> Result<Option<Account>> {
-        let result = self.conn.query_row(
+        let conn = self.conn.lock().unwrap();
+        let result = conn.query_row(
             "SELECT id, name, server_url, username, password, created_at, last_sync
              FROM accounts WHERE id = ?1",
             params![id],
@@ -99,7 +102,8 @@ impl Database {
 
     /// List all accounts
     pub fn list_accounts(&self) -> Result<Vec<Account>> {
-        let mut stmt = self.conn.prepare(
+        let conn = self.conn.lock().unwrap();
+        let mut stmt = conn.prepare(
             "SELECT id, name, server_url, username, password, created_at, last_sync
              FROM accounts ORDER BY id"
         )?;
@@ -123,15 +127,15 @@ impl Database {
                     ))?,
             })
         })?
-        .collect::<std::result::Result<Vec<_>, _>>()
-        .map_err(|e| anyhow::anyhow!(e))?;
+        .collect::<std::result::Result<Vec<_>, _>>()?;
 
         Ok(accounts)
     }
 
     /// Update an account
     pub fn update_account(&self, account: &Account) -> Result<()> {
-        self.conn.execute(
+        let conn = self.conn.lock().unwrap();
+        conn.execute(
             "UPDATE accounts
              SET name = ?1, server_url = ?2, username = ?3, password = ?4,
                  created_at = ?5, last_sync = ?6
@@ -152,7 +156,8 @@ impl Database {
 
     /// Delete an account and all associated data
     pub fn delete_account(&self, id: i64) -> Result<()> {
-        self.conn.execute("DELETE FROM accounts WHERE id = ?1", params![id])?;
+        let conn = self.conn.lock().unwrap();
+        conn.execute("DELETE FROM accounts WHERE id = ?1", params![id])?;
         Ok(())
     }
 
@@ -160,7 +165,8 @@ impl Database {
 
     /// Insert a new calendar
     pub fn insert_calendar(&self, calendar: &Calendar) -> Result<i64> {
-        self.conn.execute(
+        let conn = self.conn.lock().unwrap();
+        conn.execute(
             "INSERT INTO calendars (account_id, name, url, sync_token, color, enabled)
              VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
             params![
@@ -173,12 +179,13 @@ impl Database {
             ],
         )?;
 
-        Ok(self.conn.last_insert_rowid())
+        Ok(conn.last_insert_rowid())
     }
 
     /// Get a calendar by ID
     pub fn get_calendar(&self, id: i64) -> Result<Option<Calendar>> {
-        let result = self.conn.query_row(
+        let conn = self.conn.lock().unwrap();
+        let result = conn.query_row(
             "SELECT id, account_id, name, url, sync_token, color, enabled
              FROM calendars WHERE id = ?1",
             params![id],
@@ -200,7 +207,8 @@ impl Database {
 
     /// List calendars for an account
     pub fn list_calendars(&self, account_id: i64) -> Result<Vec<Calendar>> {
-        let mut stmt = self.conn.prepare(
+        let conn = self.conn.lock().unwrap();
+        let mut stmt = conn.prepare(
             "SELECT id, account_id, name, url, sync_token, color, enabled
              FROM calendars WHERE account_id = ?1 ORDER BY id"
         )?;
@@ -216,15 +224,15 @@ impl Database {
                 enabled: row.get(6)?,
             })
         })?
-        .collect::<std::result::Result<Vec<_>, _>>()
-        .map_err(|e| anyhow::anyhow!(e))?;
+        .collect::<std::result::Result<Vec<_>, _>>()?;
 
         Ok(calendars)
     }
 
     /// Update a calendar
     pub fn update_calendar(&self, calendar: &Calendar) -> Result<()> {
-        self.conn.execute(
+        let conn = self.conn.lock().unwrap();
+        conn.execute(
             "UPDATE calendars
              SET account_id = ?1, name = ?2, url = ?3, sync_token = ?4, color = ?5, enabled = ?6
              WHERE id = ?7",
@@ -244,7 +252,8 @@ impl Database {
 
     /// Delete a calendar and all associated events
     pub fn delete_calendar(&self, id: i64) -> Result<()> {
-        self.conn.execute("DELETE FROM calendars WHERE id = ?1", params![id])?;
+        let conn = self.conn.lock().unwrap();
+        conn.execute("DELETE FROM calendars WHERE id = ?1", params![id])?;
         Ok(())
     }
 
@@ -252,8 +261,9 @@ impl Database {
 
     /// Insert or update an event (upsert based on calendar_id + uid)
     pub fn upsert_event(&self, event: &Event) -> Result<i64> {
+        let conn = self.conn.lock().unwrap();
         // Try to find existing event by calendar_id + uid
-        let existing_id: Option<i64> = self.conn.query_row(
+        let existing_id: Option<i64> = conn.query_row(
             "SELECT id FROM events WHERE calendar_id = ?1 AND uid = ?2",
             params![event.calendar_id, event.uid],
             |row| row.get(0),
@@ -261,7 +271,7 @@ impl Database {
 
         if let Some(id) = existing_id {
             // Update existing event
-            self.conn.execute(
+            conn.execute(
                 "UPDATE events
                  SET summary = ?1, description = ?2, location = ?3,
                      start_time = ?4, end_time = ?5, etag = ?6,
@@ -282,7 +292,7 @@ impl Database {
             Ok(id)
         } else {
             // Insert new event
-            self.conn.execute(
+            conn.execute(
                 "INSERT INTO events (calendar_id, uid, summary, description, location,
                                     start_time, end_time, etag, ical_data, last_modified)
                  VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
@@ -299,18 +309,19 @@ impl Database {
                     event.last_modified.to_rfc3339(),
                 ],
             )?;
-            Ok(self.conn.last_insert_rowid())
+            Ok(conn.last_insert_rowid())
         }
     }
 
     /// Get an event by ID
     pub fn get_event(&self, id: i64) -> Result<Option<Event>> {
-        let result = self.conn.query_row(
+        let conn = self.conn.lock().unwrap();
+        let result = conn.query_row(
             "SELECT id, calendar_id, uid, summary, description, location,
                     start_time, end_time, etag, ical_data, last_modified
              FROM events WHERE id = ?1",
             params![id],
-            |row| self.event_from_row(row),
+            |row| Self::event_from_row(row),
         ).optional()?;
 
         Ok(result)
@@ -318,12 +329,13 @@ impl Database {
 
     /// Get an event by calendar ID and UID
     pub fn get_event_by_uid(&self, calendar_id: i64, uid: &str) -> Result<Option<Event>> {
-        let result = self.conn.query_row(
+        let conn = self.conn.lock().unwrap();
+        let result = conn.query_row(
             "SELECT id, calendar_id, uid, summary, description, location,
                     start_time, end_time, etag, ical_data, last_modified
              FROM events WHERE calendar_id = ?1 AND uid = ?2",
             params![calendar_id, uid],
-            |row| self.event_from_row(row),
+            |row| Self::event_from_row(row),
         ).optional()?;
 
         Ok(result)
@@ -336,8 +348,10 @@ impl Database {
         start: DateTime<Utc>,
         end: DateTime<Utc>,
     ) -> Result<Vec<Event>> {
+        let conn = self.conn.lock().unwrap();
+
         if let Some(cal_id) = calendar_id {
-            let mut stmt = self.conn.prepare(
+            let mut stmt = conn.prepare(
                 "SELECT id, calendar_id, uid, summary, description, location,
                         start_time, end_time, etag, ical_data, last_modified
                  FROM events
@@ -347,14 +361,13 @@ impl Database {
 
             let events: Vec<Event> = stmt.query_map(
                 params![cal_id, start.to_rfc3339(), end.to_rfc3339()],
-                |row| self.event_from_row(row),
+                Self::event_from_row,
             )?
-            .collect::<std::result::Result<Vec<_>, _>>()
-            .map_err(|e| anyhow::anyhow!(e))?;
+            .collect::<std::result::Result<Vec<_>, _>>()?;
 
             Ok(events)
         } else {
-            let mut stmt = self.conn.prepare(
+            let mut stmt = conn.prepare(
                 "SELECT id, calendar_id, uid, summary, description, location,
                         start_time, end_time, etag, ical_data, last_modified
                  FROM events
@@ -364,10 +377,9 @@ impl Database {
 
             let events: Vec<Event> = stmt.query_map(
                 params![start.to_rfc3339(), end.to_rfc3339()],
-                |row| self.event_from_row(row),
+                Self::event_from_row,
             )?
-            .collect::<std::result::Result<Vec<_>, _>>()
-            .map_err(|e| anyhow::anyhow!(e))?;
+            .collect::<std::result::Result<Vec<_>, _>>()?;
 
             Ok(events)
         }
@@ -375,13 +387,15 @@ impl Database {
 
     /// Delete an event
     pub fn delete_event(&self, id: i64) -> Result<()> {
-        self.conn.execute("DELETE FROM events WHERE id = ?1", params![id])?;
+        let conn = self.conn.lock().unwrap();
+        conn.execute("DELETE FROM events WHERE id = ?1", params![id])?;
         Ok(())
     }
 
     /// Delete an event by calendar ID and UID
     pub fn delete_event_by_uid(&self, calendar_id: i64, uid: &str) -> Result<()> {
-        self.conn.execute(
+        let conn = self.conn.lock().unwrap();
+        conn.execute(
             "DELETE FROM events WHERE calendar_id = ?1 AND uid = ?2",
             params![calendar_id, uid],
         )?;
@@ -389,7 +403,7 @@ impl Database {
     }
 
     /// Helper to convert a database row to an Event
-    fn event_from_row(&self, row: &rusqlite::Row) -> rusqlite::Result<Event> {
+    fn event_from_row(row: &rusqlite::Row) -> rusqlite::Result<Event> {
         Ok(Event {
             id: row.get(0)?,
             calendar_id: row.get(1)?,

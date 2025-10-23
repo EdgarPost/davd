@@ -37,7 +37,7 @@ pub struct ICalEvent {
 /// - The data is not valid iCalendar format
 /// - Required properties are missing (UID, DTSTART)
 /// - Dates cannot be parsed
-pub fn parse_event(ical_data: &str) -> Result<ICalEvent> {
+pub fn parse_event(_ical_data: &str) -> Result<ICalEvent> {
     // TODO: Parse iCalendar data
     // TODO: Extract VEVENT component
     // TODO: Parse required properties (UID, DTSTART)
@@ -56,7 +56,7 @@ pub fn parse_event(ical_data: &str) -> Result<ICalEvent> {
 ///
 /// # Returns
 /// The property value if found, None otherwise
-fn extract_property(data: &str, property: &str) -> Option<String> {
+fn extract_property(_data: &str, _property: &str) -> Option<String> {
     // TODO: Find property line
     // TODO: Extract value (handle line folding)
     // TODO: Unescape text (\\n, \\,, etc.)
@@ -70,7 +70,7 @@ fn extract_property(data: &str, property: &str) -> Option<String> {
 ///
 /// # Returns
 /// A parsed DateTime<Utc>
-fn parse_datetime(value: &str) -> Result<DateTime<Utc>> {
+fn parse_datetime(_value: &str) -> Result<DateTime<Utc>> {
     // TODO: Parse DATE-TIME format (e.g., "20240101T120000Z")
     // TODO: Parse DATE format (e.g., "20240101")
     // TODO: Handle timezone parameters
