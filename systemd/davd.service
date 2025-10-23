@@ -1,0 +1,28 @@
+[Unit]
+Description=davd - CalDAV/CardDAV Sync Daemon
+Documentation=https://github.com/EdgarPost/davd
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=%h/.cargo/bin/davd daemon
+Restart=on-failure
+RestartSec=10
+
+# Security hardening
+PrivateTmp=yes
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=read-only
+
+# Allow writing to database directory
+ReadWritePaths=%h/.local/share/davd
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=davd
+
+[Install]
+WantedBy=default.target
